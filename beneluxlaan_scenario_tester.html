@@ -1,0 +1,232 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#app { font-family: var(--font-sans); padding: 0.75rem 0; }
+.scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 12px; padding: 16px; }
+.panel-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.ctrl { margin-bottom: 12px; }
+.ctrl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.ctrl-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); }
+.ctrl-val { font-size: 12px; font-weight: 500; }
+.ctrl-desc { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; margin-bottom: 4px; }
+input[type=range] { width: 100%; }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.rcard { background: var(--color-background-secondary); border-radius: 8px; padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); }
+.rcard-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 2px; }
+.rcard-score { font-size: 20px; font-weight: 500; }
+.rcard-change { font-size: 10px; margin-top: 1px; }
+.rcard-bar { height: 5px; border-radius: 3px; background: var(--color-border-tertiary); margin-top: 5px; overflow: hidden; }
+.rcard-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.overall-card { background: var(--color-background-primary); border: 1.5px solid; border-radius: 10px; padding: 12px 14px; margin-top: 4px; }
+.oc-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.oc-score { font-size: 28px; font-weight: 500; }
+.oc-change { font-size: 11px; margin-top: 4px; }
+.oc-text { font-size: 11px; color: var(--color-text-secondary); margin-top: 8px; line-height: 1.5; }
+.who-bars { margin-top: 10px; }
+.who-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.who-label { font-size: 10px; color: var(--color-text-secondary); width: 90px; min-width: 90px; }
+.who-track { flex: 1; height: 8px; border-radius: 4px; background: var(--color-background-tertiary); position: relative; overflow: hidden; }
+.who-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.who-threshold { position: absolute; top: 0; height: 100%; width: 1.5px; background: #A32D2D; opacity: 0.7; }
+.who-val { font-size: 10px; font-weight: 500; width: 36px; text-align: right; }
+.preset-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.preset-btn { font-size: 10px; padding: 4px 10px; border-radius: 16px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all .12s; }
+.preset-btn:hover { background: var(--color-background-secondary); }
+.preset-btn.active { background: #1D9E75; color: #fff; border-color: #1D9E75; }
+.diff-pos { color: #3B6D11; }
+.diff-neg { color: #A32D2D; }
+.diff-neu { color: var(--color-text-tertiary); }
+</style>
+
+<div id="app">
+  <div class="preset-row" id="presets"></div>
+  <div class="scenario-grid">
+    <div class="panel">
+      <div class="panel-title">Design intervention sliders</div>
+      <div id="controls"></div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="panel-title">Health layer scores</div>
+        <div class="results-grid" id="results"></div>
+        <div class="overall-card" id="overall-card">
+          <div class="oc-top">
+            <div>
+              <div style="font-size:11px;color:var(--color-text-tertiary);">Overall healthy urban layer</div>
+              <div class="oc-score" id="oc-score">—</div>
+            </div>
+            <div id="oc-badge" style="font-size:10px;padding:3px 9px;border-radius:10px;margin-top:4px;"></div>
+          </div>
+          <div class="oc-change" id="oc-change"></div>
+          <div class="oc-text" id="oc-text"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:10px;">
+        <div class="panel-title">WHO 6P impact — how greenery shifts indicators</div>
+        <div class="who-bars" id="who-bars"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASELINE = { greenSpace:20, bikeNetwork:40, parkDistance:50, treeCover:25, heatExposure:76, airQuality:55 };
+
+const CONTROLS = [
+  { id:'greenSpace',    label:'Green space %',        desc:'CBS: park access index currently 54 vs 81.5 Utrecht — add pocket parks, verge planting', color:'#639922', min:0, max:100 },
+  { id:'treeCover',     label:'Tree cover %',          desc:'Beneluxlaan corridor: currently <5% canopy — WHO benchmark ≥20%', color:'#1D9E75', min:0, max:100 },
+  { id:'parkDistance',  label:'Park proximity',        desc:'300m access standard — distance score to nearest accessible green space', color:'#27500A', min:0, max:100 },
+  { id:'bikeNetwork',   label:'Bike network density',  desc:'Active travel spine — WHO GAPPA: cycle lanes enable NCD prevention', color:'#378ADD', min:0, max:100 },
+  { id:'heatExposure',  label:'Heat stress (lower=better)', desc:'Urban heat island effect — trees and green cover reduce surface temperatures', color:'#D85A30', min:0, max:100 },
+  { id:'airQuality',    label:'Air quality index',     desc:'PM2.5/NO2 — vegetation filters road pollution from Beneluxlaan traffic', color:'#534AB7', min:0, max:100 },
+];
+
+const PRESETS = [
+  { id:'baseline', label:'Current baseline', vals:{ greenSpace:20, bikeNetwork:40, parkDistance:50, treeCover:25, heatExposure:76, airQuality:55 } },
+  { id:'greenery', label:'Greenery intervention', vals:{ greenSpace:55, bikeNetwork:40, parkDistance:72, treeCover:45, heatExposure:55, airQuality:72 } },
+  { id:'full',     label:'Full Beneluxlaan intervention', vals:{ greenSpace:65, bikeNetwork:75, parkDistance:80, treeCover:55, heatExposure:42, airQuality:80 } },
+  { id:'max',      label:'WHO benchmark target', vals:{ greenSpace:80, bikeNetwork:85, parkDistance:88, treeCover:70, heatExposure:30, airQuality:88 } },
+];
+
+let current = { ...BASELINE };
+let activePreset = 'baseline';
+const baseScores = calcScores(BASELINE);
+
+function n(v){ return Number(v)/100; }
+
+function calcScores(vals){
+  const green=n(vals.greenSpace), bike=n(vals.bikeNetwork), park=n(vals.parkDistance);
+  const tree=n(vals.treeCover), heat=n(vals.heatExposure), air=n(vals.airQuality);
+  const walkability  = 0.35*bike + 0.30*park + 0.20*green + 0.15*air;
+  const heatHealth   = 0.40*tree + 0.25*green + 0.20*air + 0.15*(1-heat);
+  const activeLiving = 0.50*walkability + 0.30*green + 0.20*bike;
+  const climateHealth= 0.50*heatHealth + 0.30*tree + 0.20*air;
+  const overall      = 0.40*activeLiving + 0.35*climateHealth + 0.25*walkability;
+  return { walkability:walkability*100, heatHealth:heatHealth*100, activeLiving:activeLiving*100, climateHealth:climateHealth*100, overall:overall*100 };
+}
+
+const WHO_INDICATORS = [
+  { label:'Park access',    getVal: v => v.greenSpace, threshold:80, unit:'%', color:'#639922', pillar:'Planet' },
+  { label:'Tree cover',     getVal: v => v.treeCover,  threshold:20, unit:'%', color:'#1D9E75', pillar:'Planet' },
+  { label:'Air quality',    getVal: v => v.airQuality, threshold:70, unit:'idx', color:'#534AB7', pillar:'Planet' },
+  { label:'Active travel',  getVal: v => v.bikeNetwork,threshold:65, unit:'%', color:'#378ADD', pillar:'Place' },
+  { label:'Heat stress',    getVal: v => 100-v.heatExposure, threshold:60, unit:'idx', color:'#D85A30', pillar:'Planet', inverted:true },
+];
+
+function diffStr(a, b){ const d=(b-a); if(Math.abs(d)<0.05) return ''; return (d>0?'+':'')+d.toFixed(1); }
+function diffColor(a,b){ const d=b-a; if(Math.abs(d)<0.05) return 'diff-neu'; return d>0?'diff-pos':'diff-neg'; }
+
+function render(){
+  const scores = calcScores(current);
+
+  document.getElementById('controls').innerHTML = CONTROLS.map(c => {
+    const val = current[c.id];
+    return `<div class="ctrl">
+      <div class="ctrl-head">
+        <span class="ctrl-label" style="color:${c.color}">${c.label}</span>
+        <span class="ctrl-val" style="color:${c.color}" id="v-${c.id}">${val}</span>
+      </div>
+      <div class="ctrl-desc">${c.desc}</div>
+      <input type="range" min="${c.min}" max="${c.max}" step="1" value="${val}" id="r-${c.id}" style="accent-color:${c.color}">
+    </div>`;
+  }).join('');
+
+  CONTROLS.forEach(c => {
+    document.getElementById('r-'+c.id).oninput = function(){
+      current[c.id] = parseInt(this.value);
+      document.getElementById('v-'+c.id).textContent = this.value;
+      activePreset = '';
+      renderResults();
+      renderWho();
+      renderPresets();
+    };
+  });
+
+  renderResults();
+  renderWho();
+}
+
+function renderResults(){
+  const scores = calcScores(current);
+  const layers = [
+    { key:'walkability',   label:'Walkability index',   color:'#378ADD' },
+    { key:'heatHealth',    label:'Heat health index',   color:'#D85A30' },
+    { key:'activeLiving',  label:'Active living layer', color:'#639922' },
+    { key:'climateHealth', label:'Climate health layer',color:'#1D9E75' },
+  ];
+  document.getElementById('results').innerHTML = layers.map(l => {
+    const s = scores[l.key], b = baseScores[l.key];
+    const d = diffStr(b,s), dc = diffColor(b,s);
+    return `<div class="rcard">
+      <div class="rcard-label">${l.label}</div>
+      <div class="rcard-score" style="color:${l.color}">${s.toFixed(1)}</div>
+      <div class="rcard-change ${dc}">${d ? (d.startsWith('+')?'▲ ':'▼ ')+d+' from baseline' : 'baseline'}</div>
+      <div class="rcard-bar"><div class="rcard-bar-fill" style="width:${s.toFixed(1)}%;background:${l.color}"></div></div>
+    </div>`;
+  }).join('');
+
+  const ov = scores.overall, ob = baseScores.overall;
+  const od = ov - ob;
+  const oc = document.getElementById('overall-card');
+  const borderColor = ov >= 75 ? '#639922' : ov >= 55 ? '#BA7517' : '#A32D2D';
+  oc.style.borderColor = borderColor;
+  document.getElementById('oc-score').style.color = borderColor;
+  document.getElementById('oc-score').textContent = ov.toFixed(1);
+  const badge = document.getElementById('oc-badge');
+  badge.style.background = borderColor+'20';
+  badge.style.color = borderColor;
+  badge.style.border = '0.5px solid '+borderColor;
+  badge.textContent = ov>=75?'Strong':ov>=55?'Moderate':'Weak';
+  const changeEl = document.getElementById('oc-change');
+  if(Math.abs(od)>0.05){
+    changeEl.className = 'oc-change '+(od>0?'diff-pos':'diff-neg');
+    changeEl.textContent = (od>0?'▲ +':'▼ ')+od.toFixed(1)+' from Kanaleneiland baseline';
+  } else { changeEl.textContent = 'Kanaleneiland current baseline'; changeEl.className='oc-change diff-neu'; }
+  document.getElementById('oc-text').textContent = ov>=75
+    ? 'This scenario meets WHO healthy city thresholds. Beneluxlaan functions as a green-active corridor connecting all six 6P pillars.'
+    : ov>=55
+    ? 'Moderate improvement. Green space and active travel are working — but economic equity and governance interventions are still needed to reach WHO benchmarks.'
+    : 'The district still faces strong spatial and health thresholds. Green space alone is insufficient without addressing economic equity and governance simultaneously.';
+}
+
+function renderWho(){
+  document.getElementById('who-bars').innerHTML = WHO_INDICATORS.map(w => {
+    const val = w.getVal(current);
+    const base = w.getVal(BASELINE);
+    const pct = Math.min(100, (val/100)*100);
+    const tpct = Math.min(100, (w.threshold/100)*100);
+    const meets = val >= w.threshold;
+    const d = diffStr(base, val);
+    const dc = diffColor(base, val);
+    return `<div class="who-row">
+      <span class="who-label">${w.label}<br><span style="font-size:9px;color:var(--color-text-tertiary)">${w.pillar}</span></span>
+      <div class="who-track">
+        <div class="who-fill" style="width:${pct}%;background:${meets?w.color:'#A32D2D'}"></div>
+        <div class="who-threshold" style="left:${tpct}%"></div>
+      </div>
+      <span class="who-val" style="color:${meets?w.color:'#A32D2D'}">${val}${d?`<br><span class="${dc}" style="font-size:9px">${d}</span>`:''}</span>
+    </div>`;
+  }).join('');
+  const leg = `<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--color-text-tertiary)"><div style="width:1.5px;height:10px;background:#A32D2D;opacity:0.7"></div>Red line = WHO threshold · Bar colour = meets (green/blue) or fails (red) the benchmark</div>`;
+  document.getElementById('who-bars').insertAdjacentHTML('beforeend', leg);
+}
+
+function renderPresets(){
+  document.getElementById('presets').innerHTML = PRESETS.map(p =>
+    `<button class="preset-btn${activePreset===p.id?' active':''}" onclick="applyPreset('${p.id}')">${p.label}</button>`
+  ).join('');
+}
+
+window.applyPreset = function(id){
+  const p = PRESETS.find(x=>x.id===id);
+  if(!p) return;
+  current = {...p.vals};
+  activePreset = id;
+  render();
+  renderPresets();
+};
+
+render();
+renderPresets();
+</script>

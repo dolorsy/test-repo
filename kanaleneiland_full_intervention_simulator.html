@@ -1,0 +1,334 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#app { font-family: var(--font-sans); padding: 0.5rem 0; }
+.top-bar { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.preset { font-size: 11px; padding: 4px 11px; border-radius: 16px; border: 0.5px solid; background: transparent; cursor: pointer; transition: all .12s; white-space: nowrap; }
+.preset:hover { opacity: 0.8; }
+.preset.on { color: #fff !important; }
+.main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.left-panel { display: flex; flex-direction: column; gap: 10px; }
+.right-panel { display: flex; flex-direction: column; gap: 10px; }
+.pcard { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: 10px; padding: 13px 15px; }
+.pcard-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.ctrl { margin-bottom: 9px; }
+.ctrl:last-child { margin-bottom: 0; }
+.ch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.cl { font-size: 11px; font-weight: 500; }
+.cv { font-size: 11px; font-weight: 500; }
+.cd { font-size: 9.5px; color: var(--color-text-tertiary); margin-bottom: 3px; }
+input[type=range] { width: 100%; margin: 0; }
+.score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sc { background: var(--color-background-secondary); border-radius: 8px; padding: 9px 11px; border: 0.5px solid var(--color-border-tertiary); }
+.sc-l { font-size: 9.5px; color: var(--color-text-tertiary); }
+.sc-v { font-size: 18px; font-weight: 500; margin: 1px 0; }
+.sc-d { font-size: 9.5px; }
+.sc-bar { height: 4px; border-radius: 2px; background: var(--color-border-tertiary); margin-top: 5px; overflow: hidden; }
+.sc-bf { height: 100%; border-radius: 2px; transition: width 0.35s; }
+.overall { background: var(--color-background-primary); border: 1.5px solid; border-radius: 10px; padding: 13px 15px; }
+.ov-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.ov-num { font-size: 32px; font-weight: 500; line-height: 1; }
+.ov-badge { font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 10px; margin-top: 3px; }
+.ov-change { font-size: 10px; margin-top: 4px; }
+.ov-text { font-size: 11px; color: var(--color-text-secondary); margin-top: 8px; line-height: 1.5; }
+.who-row { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.wl { font-size: 10px; color: var(--color-text-secondary); width: 88px; min-width: 88px; line-height: 1.2; }
+.wt { flex: 1; height: 8px; border-radius: 4px; background: var(--color-background-tertiary); position: relative; overflow: hidden; }
+.wf { height: 100%; border-radius: 4px; transition: width 0.35s; }
+.wth { position: absolute; top: 0; height: 100%; width: 1.5px; background: #A32D2D; opacity: 0.6; }
+.wv { font-size: 10px; font-weight: 500; width: 32px; text-align: right; }
+.wd { font-size: 9px; width: 28px; text-align: right; }
+.pillar-strip { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.pstrip { font-size: 9.5px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.pos { color: #3B6D11; } .neg { color: #A32D2D; } .neu { color: var(--color-text-tertiary); }
+</style>
+
+<div id="app">
+  <div class="top-bar" id="presets-bar"></div>
+  <div class="main-grid">
+    <div class="left-panel" id="left-panel"></div>
+    <div class="right-panel" id="right-panel"></div>
+  </div>
+</div>
+
+<script>
+const PILLAR_GROUPS = [
+  {
+    id: 'planet', label: 'Planet — environment', color: '#639922',
+    desc: 'Green space, trees, air, biodiversity, climate',
+    controls: [
+      { id:'greenSpace',   label:'Green space %',       desc:'Pocket parks, verge planting, green roofs · CBS park access index currently 54 vs 81.5 Utrecht', color:'#639922', val:20, base:20 },
+      { id:'treeCover',    label:'Tree cover %',         desc:'Canopy on Beneluxlaan + streets · WHO benchmark ≥20% · Currently estimated <5%', color:'#1D9E75', val:25, base:25 },
+      { id:'parkDistance', label:'Park proximity',       desc:'Score for 300m green access standard · WHO: ≥90% residents within 300m', color:'#27500A', val:50, base:50 },
+      { id:'airQuality',   label:'Air quality index',    desc:'PM2.5/NO2 reduction · Trees filter Beneluxlaan road pollution · WHO AQG 2021 <5 μg/m³', color:'#534AB7', val:55, base:55 },
+      { id:'heatExposure', label:'Heat stress (lower=better)', desc:'Urban heat island reduction · Tree canopy lowers surface temps · IPCC AR6', color:'#D85A30', val:76, base:76, invert:true },
+      { id:'biodiversity', label:'Biodiversity score',   desc:'Currently +9.3 vs Utrecht — leverage canal corridor habitat · King\'s College Urban Mind 2021', color:'#3B6D11', val:77, base:77 },
+    ]
+  },
+  {
+    id: 'place', label: 'Place — built environment', color: '#1D9E75',
+    desc: 'Housing, mobility, transport, active travel',
+    controls: [
+      { id:'bikeNetwork',  label:'Cycle lane density',   desc:'Protected lanes on Beneluxlaan to station · WHO GAPPA: active travel = NCD prevention', color:'#378ADD', val:40, base:40 },
+      { id:'walkInfra',    label:'Walking infrastructure',desc:'Pavements, crossings, street lighting · 52% impairment rate needs accessible design', color:'#185FA5', val:45, base:45 },
+      { id:'housingQual',  label:'Housing quality score', desc:'Cold/damp/overcrowding · WHO Housing Guidelines 2018 · Energy retrofit co-benefits', color:'#1D9E75', val:50, base:50 },
+      { id:'serviceAccess',label:'Service accessibility', desc:'GP 1.5km · Hospital 3.9km · Station 2.6km · WHO: within 15 min walk', color:'#0F6E56', val:42, base:42 },
+    ]
+  },
+  {
+    id: 'people', label: 'People — health & wellbeing', color: '#534AB7',
+    desc: 'Physical health, mental wellbeing, loneliness, care',
+    controls: [
+      { id:'mentalHealth',  label:'Mental health support', desc:'Social prescribing, community hubs · 18% anxiety risk vs 11.1% Utrecht · CBS Gezondheidsmonitor', color:'#534AB7', val:30, base:30 },
+      { id:'loneliness',    label:'Loneliness programme',  desc:'Community connectors, social spaces · Index 56 vs 68.4 Utrecht · Holt-Lunstad 2015', color:'#D4537E', val:25, base:25 },
+      { id:'physicalAct',   label:'Physical activity offer',desc:'Sports, exercise, active play · 51% meet guidelines vs 56.7% Utrecht · WHO GAPPA', color:'#7F77DD', val:40, base:40 },
+      { id:'healthAccess',  label:'Healthcare integration', desc:'GP co-location, social prescribing · 80% outcomes from social determinants · CSDH 2008', color:'#3C3489', val:48, base:48 },
+    ]
+  },
+  {
+    id: 'prosperity', label: 'Prosperity — economic equity', color: '#BA7517',
+    desc: 'Income, child poverty, resilience, employment',
+    controls: [
+      { id:'economicSupport',label:'Economic support hubs', desc:'Income advice, debt counselling, job brokerage · 28.3% trouble making ends meet vs 18.4%', color:'#BA7517', val:20, base:20 },
+      { id:'childPoverty',   label:'Child poverty reduction',desc:'In-school food, after-school provision · 33.6% vs 13.2% Utrecht · UNICEF Innocenti', color:'#854F0B', val:34, base:34, invert:true },
+      { id:'employment',     label:'Employment access',      desc:'Job proximity via active travel to station · Station 2.6km limits economic participation', color:'#EF9F27', val:38, base:38 },
+      { id:'financialRes',   label:'Financial resilience',   desc:'Buffer fund, savings schemes · 25% no financial buffer vs 12% Utrecht · Marmot 2010', color:'#633806', val:30, base:30 },
+    ]
+  },
+  {
+    id: 'participation', label: 'Participation — social fabric', color: '#D4537E',
+    desc: 'Social cohesion, community, resilience',
+    controls: [
+      { id:'socialCohesion',label:'Social cohesion score',  desc:'Community events, shared spaces · Index 62.1 vs 64.1 Utrecht — smallest gap, build on it', color:'#D4537E', val:62, base:62 },
+      { id:'communitySpaces',label:'Community spaces',      desc:'Meeting places, community gardens · Reduces loneliness (Holt-Lunstad) + builds cohesion', color:'#993556', val:30, base:30 },
+      { id:'residentVoice',  label:'Resident participation',desc:'Co-design, local governance · WHO Phase VII mandatory participation requirement', color:'#ED93B1', val:25, base:25 },
+    ]
+  },
+  {
+    id: 'peace', label: 'Peace — governance', color: '#378ADD',
+    desc: 'Intersectoral governance, HiAP, equity policy',
+    controls: [
+      { id:'governance',    label:'HiAP governance score',  desc:'Health in All Policies · WHO Phase VII: 4+ departments coordinating · Currently siloed', color:'#378ADD', val:20, base:20 },
+      { id:'policyAlign',   label:'Policy alignment',       desc:'Housing + transport + health + parks working together · Intersectoral working group', color:'#185FA5', val:25, base:25 },
+      { id:'monitoring',    label:'CBS indicator monitoring',desc:'Annual reporting against WHO benchmark set · CBS 86270ENG as shared dashboard', color:'#0C447C', val:30, base:30 },
+    ]
+  },
+];
+
+const PRESETS = [
+  { id:'baseline', label:'Current baseline', color:'#888780',
+    vals:{ greenSpace:20,treeCover:25,parkDistance:50,airQuality:55,heatExposure:76,biodiversity:77, bikeNetwork:40,walkInfra:45,housingQual:50,serviceAccess:42, mentalHealth:30,loneliness:25,physicalAct:40,healthAccess:48, economicSupport:20,childPoverty:34,employment:38,financialRes:30, socialCohesion:62,communitySpaces:30,residentVoice:25, governance:20,policyAlign:25,monitoring:30 } },
+  { id:'greenery', label:'Greenery only', color:'#639922',
+    vals:{ greenSpace:60,treeCover:50,parkDistance:75,airQuality:72,heatExposure:50,biodiversity:85, bikeNetwork:40,walkInfra:45,housingQual:50,serviceAccess:42, mentalHealth:30,loneliness:25,physicalAct:40,healthAccess:48, economicSupport:20,childPoverty:34,employment:38,financialRes:30, socialCohesion:62,communitySpaces:30,residentVoice:25, governance:20,policyAlign:25,monitoring:30 } },
+  { id:'mobility', label:'Mobility + greenery', color:'#378ADD',
+    vals:{ greenSpace:60,treeCover:50,parkDistance:75,airQuality:72,heatExposure:50,biodiversity:85, bikeNetwork:78,walkInfra:75,housingQual:55,serviceAccess:65, mentalHealth:40,loneliness:35,physicalAct:60,healthAccess:55, economicSupport:20,childPoverty:34,employment:55,financialRes:30, socialCohesion:66,communitySpaces:45,residentVoice:30, governance:30,policyAlign:35,monitoring:40 } },
+  { id:'social', label:'+ Social & economic', color:'#BA7517',
+    vals:{ greenSpace:60,treeCover:50,parkDistance:75,airQuality:72,heatExposure:50,biodiversity:85, bikeNetwork:78,walkInfra:75,housingQual:68,serviceAccess:68, mentalHealth:60,loneliness:62,physicalAct:65,healthAccess:65, economicSupport:65,childPoverty:18,employment:68,financialRes:60, socialCohesion:72,communitySpaces:68,residentVoice:60, governance:55,policyAlign:60,monitoring:62 } },
+  { id:'full', label:'Full WHO HiAP', color:'#1D9E75',
+    vals:{ greenSpace:80,treeCover:70,parkDistance:88,airQuality:85,heatExposure:30,biodiversity:90, bikeNetwork:88,walkInfra:85,housingQual:82,serviceAccess:82, mentalHealth:78,loneliness:75,physicalAct:80,healthAccess:78, economicSupport:80,childPoverty:10,employment:80,financialRes:75, socialCohesion:80,communitySpaces:80,residentVoice:78, governance:82,policyAlign:80,monitoring:82 } },
+];
+
+let cur = { ...PRESETS[0].vals };
+let activePreset = 'baseline';
+const base = PRESETS[0].vals;
+
+function n(v){ return Number(v)/100; }
+
+function calcScores(v){
+  const green=n(v.greenSpace), tree=n(v.treeCover), park=n(v.parkDistance);
+  const air=n(v.airQuality), heat=n(v.heatExposure), bio=n(v.biodiversity);
+  const bike=n(v.bikeNetwork), walk=n(v.walkInfra), hous=n(v.housingQual), svc=n(v.serviceAccess);
+  const mh=n(v.mentalHealth), lone=n(v.loneliness), pa=n(v.physicalAct), ha=n(v.healthAccess);
+  const econ=n(v.economicSupport), cp=1-n(v.childPoverty), emp=n(v.employment), fr=n(v.financialRes);
+  const coh=n(v.socialCohesion), cs=n(v.communitySpaces), rv=n(v.residentVoice);
+  const gov=n(v.governance), pol=n(v.policyAlign), mon=n(v.monitoring);
+
+  const planet   = 0.22*green + 0.18*tree + 0.18*park + 0.15*air + 0.15*(1-heat) + 0.12*bio;
+  const place    = 0.30*bike + 0.25*walk + 0.25*hous + 0.20*svc;
+  const people   = 0.28*mh + 0.28*lone + 0.24*pa + 0.20*ha;
+  const prosperity=0.30*econ + 0.30*cp + 0.22*emp + 0.18*fr;
+  const participation=0.38*coh + 0.35*cs + 0.27*rv;
+  const peace    = 0.40*gov + 0.35*pol + 0.25*mon;
+
+  const walkability   = 0.35*bike + 0.30*park + 0.20*green + 0.15*air;
+  const heatHealth    = 0.40*tree + 0.25*green + 0.20*air + 0.15*(1-heat);
+  const activeLiving  = 0.50*walkability + 0.30*green + 0.20*bike;
+  const climateHealth = 0.50*heatHealth + 0.30*tree + 0.20*air;
+  const overall = 0.20*planet + 0.18*place + 0.17*people + 0.17*prosperity + 0.15*participation + 0.13*peace;
+
+  return { planet:planet*100, place:place*100, people:people*100, prosperity:prosperity*100, participation:participation*100, peace:peace*100, activeLiving:activeLiving*100, climateHealth:climateHealth*100, overall:overall*100 };
+}
+
+const WHO_THRESHOLDS = [
+  { label:'Planet', key:'planet', threshold:70, color:'#639922' },
+  { label:'Place', key:'place', threshold:68, color:'#1D9E75' },
+  { label:'People', key:'people', threshold:72, color:'#534AB7' },
+  { label:'Prosperity', key:'prosperity', threshold:75, color:'#BA7517' },
+  { label:'Participation', key:'participation', threshold:65, color:'#D4537E' },
+  { label:'Peace', key:'peace', threshold:70, color:'#378ADD' },
+];
+
+const baseScores = calcScores(base);
+
+function ds(a,b){ const d=b-a; if(Math.abs(d)<0.1) return {str:'',cls:'neu'}; return {str:(d>0?'+':'')+d.toFixed(1),cls:d>0?'pos':'neg'}; }
+
+function renderLeft(){
+  const left = document.getElementById('left-panel');
+  left.innerHTML = '';
+  PILLAR_GROUPS.forEach(group => {
+    const card = document.createElement('div');
+    card.className = 'pcard';
+    card.innerHTML = `<div class="pcard-title" style="color:${group.color}">${group.label}</div>` +
+      group.controls.map(c => {
+        const val = cur[c.id];
+        return `<div class="ctrl">
+          <div class="ch"><span class="cl" style="color:${c.color}">${c.label}</span><span class="cv" style="color:${c.color}" id="cv-${c.id}">${val}</span></div>
+          <div class="cd">${c.desc}</div>
+          <input type="range" min="0" max="100" step="1" value="${val}" id="sl-${c.id}" style="accent-color:${c.color}">
+        </div>`;
+      }).join('');
+    left.appendChild(card);
+    group.controls.forEach(c => {
+      document.getElementById('sl-'+c.id).oninput = function(){
+        cur[c.id] = parseInt(this.value);
+        document.getElementById('cv-'+c.id).textContent = this.value;
+        activePreset = '';
+        renderRight();
+        renderPresets();
+      };
+    });
+  });
+}
+
+function renderRight(){
+  const scores = calcScores(cur);
+  const right = document.getElementById('right-panel');
+  right.innerHTML = '';
+
+  const scCard = document.createElement('div');
+  scCard.className = 'pcard';
+  scCard.innerHTML = '<div class="pcard-title">WHO 6P pillar scores</div><div class="score-grid" id="sg"></div>';
+  right.appendChild(scCard);
+
+  const sg = scCard.querySelector('#sg');
+  [
+    {key:'planet',label:'Planet',color:'#639922'},
+    {key:'place',label:'Place',color:'#1D9E75'},
+    {key:'people',label:'People',color:'#534AB7'},
+    {key:'prosperity',label:'Prosperity',color:'#BA7517'},
+    {key:'participation',label:'Participation',color:'#D4537E'},
+    {key:'peace',label:'Peace',color:'#378ADD'},
+  ].forEach(p => {
+    const s = scores[p.key], b = baseScores[p.key];
+    const d = ds(b,s);
+    const thr = WHO_THRESHOLDS.find(w=>w.key===p.key).threshold;
+    const meets = s >= thr;
+    sg.innerHTML += `<div class="sc">
+      <div class="sc-l" style="color:${p.color}">${p.label}</div>
+      <div class="sc-v" style="color:${meets?p.color:'#A32D2D'}">${s.toFixed(1)}</div>
+      <div class="sc-d ${d.cls}">${d.str?( d.str.startsWith('+')?'▲ ':'▼ ')+d.str+' from baseline':( s>=thr?'Meets WHO':'Below WHO threshold ('+thr+')')}</div>
+      <div class="sc-bar"><div class="sc-bf" style="width:${s.toFixed(1)}%;background:${meets?p.color:'#A32D2D'}"></div></div>
+    </div>`;
+  });
+
+  const extraCard = document.createElement('div');
+  extraCard.className = 'pcard';
+  extraCard.innerHTML = '<div class="pcard-title">Health layer scores</div><div class="score-grid" id="hg"></div>';
+  right.appendChild(extraCard);
+  const hg = extraCard.querySelector('#hg');
+  [
+    {key:'activeLiving',label:'Active living',color:'#639922'},
+    {key:'climateHealth',label:'Climate health',color:'#1D9E75'},
+  ].forEach(p => {
+    const s=scores[p.key], b=baseScores[p.key], d=ds(b,s);
+    hg.innerHTML += `<div class="sc">
+      <div class="sc-l" style="color:${p.color}">${p.label}</div>
+      <div class="sc-v" style="color:${p.color}">${s.toFixed(1)}</div>
+      <div class="sc-d ${d.cls}">${d.str?(d.str.startsWith('+')?'▲ ':'▼ ')+d.str+' from baseline':''}</div>
+      <div class="sc-bar"><div class="sc-bf" style="width:${s.toFixed(1)}%;background:${p.color}"></div></div>
+    </div>`;
+  });
+
+  const ov = scores.overall, ob = baseScores.overall, od = ov-ob;
+  const ovColor = ov>=68?'#3B6D11':ov>=52?'#BA7517':'#A32D2D';
+  const ovLabel = ov>=68?'WHO target range':ov>=52?'Moderate':ov>=35?'Weak':'Critical';
+  const ovText = ov>=68
+    ? 'This scenario approaches WHO Healthy Cities designation requirements. All six pillars are showing meaningful progress toward benchmarks.'
+    : ov>=52
+    ? 'Moderate improvement. Environmental and mobility gains are visible. Economic equity and governance remain the biggest gaps holding back full health impact.'
+    : ov>=35
+    ? 'The district still faces strong spatial and health thresholds. Single-pillar interventions alone are insufficient. Intersectoral governance must activate all pillars simultaneously.'
+    : 'Current baseline: Kanaleneiland fails WHO benchmarks on four of six pillars. The compounding effect of economic, environmental, and social deficits is active.';
+
+  const oCard = document.createElement('div');
+  oCard.className = 'overall';
+  oCard.style.borderColor = ovColor;
+  oCard.innerHTML = `
+    <div class="ov-top">
+      <div>
+        <div style="font-size:10px;color:var(--color-text-tertiary);">Overall healthy urban layer</div>
+        <div class="ov-num" style="color:${ovColor}">${ov.toFixed(1)}</div>
+      </div>
+      <span class="ov-badge" style="background:${ovColor}18;color:${ovColor};border:0.5px solid ${ovColor}">${ovLabel}</span>
+    </div>
+    <div class="ov-change ${od>0.1?'pos':od<-0.1?'neg':'neu'}">${Math.abs(od)>0.1?(od>0?'▲ +':'▼ ')+od.toFixed(1)+' from Kanaleneiland current baseline':''}</div>
+    <div class="ov-text">${ovText}</div>`;
+  right.appendChild(oCard);
+
+  const whoCard = document.createElement('div');
+  whoCard.className = 'pcard';
+  whoCard.innerHTML = '<div class="pcard-title">WHO 6P benchmark comparison</div><div id="who-rows"></div>';
+  right.appendChild(whoCard);
+  const wr = whoCard.querySelector('#who-rows');
+  WHO_THRESHOLDS.forEach(w => {
+    const s=scores[w.key], b=baseScores[w.key];
+    const pct=Math.min(100,s), tpct=Math.min(100,w.threshold);
+    const meets=s>=w.threshold, d=ds(b,s);
+    wr.innerHTML += `<div class="who-row">
+      <span class="wl" style="color:${w.color}">${w.label}<br><span style="font-size:9px;color:var(--color-text-tertiary)">${w.threshold} = WHO threshold</span></span>
+      <div class="wt">
+        <div class="wf" style="width:${pct}%;background:${meets?w.color:'#A32D2D'}"></div>
+        <div class="wth" style="left:${tpct}%"></div>
+      </div>
+      <span class="wv" style="color:${meets?w.color:'#A32D2D'}">${s.toFixed(0)}</span>
+      <span class="wd ${d.cls}">${d.str}</span>
+    </div>`;
+  });
+  wr.innerHTML += `<div style="font-size:9.5px;color:var(--color-text-tertiary);margin-top:6px;display:flex;align-items:center;gap:5px;"><div style="width:1.5px;height:10px;background:#A32D2D;opacity:0.6"></div>Red line = WHO Phase VII threshold · Bar = current score</div>`;
+
+  const pillarsCard = document.createElement('div');
+  pillarsCard.className = 'pcard';
+  const passing = WHO_THRESHOLDS.filter(w => calcScores(cur)[w.key] >= w.threshold);
+  const failing = WHO_THRESHOLDS.filter(w => calcScores(cur)[w.key] < w.threshold);
+  pillarsCard.innerHTML = `<div class="pcard-title">Designation readiness</div>
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px;">Pillars meeting WHO Phase VII threshold (${passing.length}/6)</div>
+    <div class="pillar-strip">
+      ${passing.map(w=>`<span class="pstrip" style="background:${w.color}18;color:${w.color};border:0.5px solid ${w.color}44">✓ ${w.label}</span>`).join('')}
+      ${failing.map(w=>`<span class="pstrip" style="background:#FCEBEB;color:#A32D2D;border:0.5px solid #F09595">✗ ${w.label}</span>`).join('')}
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--color-text-tertiary)">All 6 pillars must meet threshold for WHO Healthy Cities designation · Phase VII 2019–2024</div>`;
+  right.appendChild(pillarsCard);
+}
+
+function renderPresets(){
+  const bar = document.getElementById('presets-bar');
+  bar.innerHTML = '<span style="font-size:10px;color:var(--color-text-tertiary);align-self:center;margin-right:3px;">Scenario:</span>';
+  PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'preset' + (activePreset===p.id?' on':'');
+    btn.style.borderColor = p.color;
+    btn.style.color = activePreset===p.id?'#fff':p.color;
+    if(activePreset===p.id) btn.style.background = p.color;
+    btn.textContent = p.label;
+    btn.onclick = () => {
+      cur = { ...p.vals };
+      activePreset = p.id;
+      renderAll();
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function renderAll(){ renderPresets(); renderLeft(); renderRight(); }
+renderAll();
+</script>

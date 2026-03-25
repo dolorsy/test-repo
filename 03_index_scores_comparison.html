@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanaleneiland — Index Scores vs Utrecht</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg:#ffffff; --bg2:#f5f4f0; --text:#1a1a18; --muted:#5f5e5a; --dim:#888780; --border:rgba(0,0,0,0.1); --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1c1c1a; --bg2:#252523; --text:#e8e6de; --muted:#9c9a92; --dim:#6b6a64; --border:rgba(255,255,255,0.1); } }
+body { font-family: var(--font); background: var(--bg2); color: var(--text); padding: 20px; }
+h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+p.sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+#card { background: var(--bg); border: 0.5px solid var(--border); border-radius: 12px; padding: 16px 20px; }
+.leg { display: flex; gap: 20px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.row { display: flex; align-items: center; gap: 0; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+.row:last-child { border-bottom: none; }
+.row:hover { background: var(--bg2); }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
+.label { width: 160px; min-width: 160px; font-size: 13px; color: var(--text); }
+.bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.bar-wrap { display: flex; align-items: center; gap: 6px; }
+.bar { height: 16px; border-radius: 3px; min-width: 2px; }
+.bar-val { font-size: 11px; font-weight: 500; white-space: nowrap; }
+.gap-badge { width: 54px; min-width: 54px; text-align: center; font-size: 11px; font-weight: 500; padding: 2px 4px; border-radius: 6px; margin-left: 8px; }
+.neg { color: #A32D2D; background: #FCEBEB; }
+.pos { color: #3B6D11; background: #EAF3DE; }
+.section-head { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); padding: 12px 0 4px; }
+footer { font-size: 10px; color: var(--dim); margin-top: 14px; font-style: italic; }
+</style>
+</head>
+<body>
+<h1>Kanaleneiland — composite index scores vs Utrecht</h1>
+<p class="sub">All scores 0–100 · Higher = better · Data: CBS Gezondheidsmonitor & Kerncijfers Wijken en Buurten (Table 86270ENG) · Composite = equal-weight inverse average of raw indicators</p>
+<div id="card">
+  <div class="leg">
+    <span class="leg-item"><span class="leg-sq" style="background:#534AB7"></span>Kanaleneiland</span>
+    <span class="leg-item"><span class="leg-sq" style="background:#B4B2A9"></span>Utrecht average</span>
+  </div>
+  <div id="rows"></div>
+  <footer>Source: CBS OpenData Netherlands · Table 86270ENG · Gezondheidsmonitor Volwassenen en Ouderen 2020/2022 · opendata.cbs.nl/#/CBS/en/dataset/86270ENG/table</footer>
+</div>
+<script>
+const sections = [
+  { head: 'People — health & wellbeing', color: '#534AB7', rows: [
+    { l:'Perceived Health',   k:66.4, u:66.6, note:'Self-rated health survey question — CBS standard' },
+    { l:'Mental Health Risk', k:66.9, u:75.9, note:'Anxiety/depression risk + stress + suicidal thoughts + emotional loneliness — Gezondheidsmonitor' },
+    { l:'Physical Health',    k:59.8, u:73.0, note:'Impairments + restricted activity + overweight + exercise — CBS neighbourhood health module' },
+    { l:'Loneliness',         k:56.0, u:68.4, note:'Social loneliness + emotional loneliness — de Jong-Gierveld scale via CBS' },
+  ]},
+  { head: 'Participation — social fabric', color: '#D4537E', rows: [
+    { l:'Social Resilience',  k:62.1, u:68.9, note:'Coping capacity + social support + economic resilience — Gezondheidsmonitor' },
+    { l:'Social Cohesion',    k:62.1, u:64.1, note:'Social nuisance + social support + cohesion score — CBS Leefbaarometer component' },
+  ]},
+  { head: 'Prosperity — economic equity', color: '#BA7517', rows: [
+    { l:'Socio-Economic',     k:69.1, u:84.2, note:'Income + child poverty + financial buffer + elderly social fragility — CBS Kerncijfers' },
+    { l:'Child Poverty',      k:33.6, u:13.2, unit:'%', note:'Percentage children in low-income households — CBS Armoede en Sociale uitsluiting' },
+  ]},
+  { head: 'Planet — environment', color: '#639922', rows: [
+    { l:'Park Access',        k:54.0, u:81.5, note:'Distance + park size + green space per resident — CBS Kerncijfers spatial model' },
+    { l:'Biodiversity',       k:76.1, u:66.8, note:'Species richness + habitat diversity + connectivity — CBS/RIVM ecological survey data' },
+  ]},
+];
+const MAX = 100;
+const container = document.getElementById('rows');
+sections.forEach(sec => {
+  const head = document.createElement('div');
+  head.className = 'section-head';
+  head.style.color = sec.color;
+  head.textContent = sec.head;
+  container.appendChild(head);
+  sec.rows.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'row';
+    div.title = row.note;
+    const diff = (row.k - row.u).toFixed(1);
+    const cls = parseFloat(diff) >= 0 ? 'pos' : 'neg';
+    const kW = Math.max(2, (row.k / MAX) * 200);
+    const uW = Math.max(2, (row.u / MAX) * 200);
+    div.innerHTML = `
+      <span class="dot" style="background:${sec.color}"></span>
+      <span class="label">${row.l}</span>
+      <div class="bars">
+        <div class="bar-wrap">
+          <div class="bar" style="width:${kW}px;background:${sec.color};opacity:0.9"></div>
+          <span class="bar-val" style="color:${sec.color}">${row.k}${row.unit||''}</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar" style="width:${uW}px;background:#B4B2A9"></div>
+          <span class="bar-val" style="color:var(--dim)">${row.u}${row.unit||''}</span>
+        </div>
+      </div>
+      <span class="gap-badge ${cls}">${parseFloat(diff)>0?'+':''}${diff}</span>`;
+    container.appendChild(div);
+  });
+});
+</script>
+</body>
+</html>

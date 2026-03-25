@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanaleneiland — Visual Index</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg:#ffffff; --bg2:#f5f4f0; --text:#1a1a18; --muted:#5f5e5a; --dim:#888780; --border:rgba(0,0,0,0.1); --teal:#1D9E75; --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1c1c1a; --bg2:#252523; --text:#e8e6de; --muted:#9c9a92; --dim:#6b6a64; --border:rgba(255,255,255,0.1); } }
+body { font-family: var(--font); background: var(--bg2); color: var(--text); padding: 32px; max-width: 800px; margin: 0 auto; }
+h1 { font-size: 24px; font-weight: 500; margin-bottom: 6px; }
+.intro { font-size: 14px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 12px; display: flex; gap: 20px; align-items: flex-start; text-decoration: none; color: var(--text); transition: border-color .15s; }
+.card:hover { border-color: var(--teal); }
+.num { width: 36px; min-width: 36px; height: 36px; border-radius: 50%; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; }
+.card-body h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+.card-body p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--teal); color: #fff; margin-top: 8px; }
+footer { font-size: 11px; color: var(--dim); margin-top: 32px; border-top: 0.5px solid var(--border); padding-top: 16px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<h1>Kanaleneiland Healthy Cities — Visual Index</h1>
+<p class="intro">Five interactive HTML visualisations based on CBS OpenData Netherlands (Table 86270ENG), the WHO European Healthy Cities 6P Framework (Phase VII 2019–2024), and peer-reviewed evidence. Open each file in any modern browser — no internet connection required.</p>
+
+<a href="01_who_healthy_city_bubble_map.html" class="card">
+  <div class="num">1</div>
+  <div class="card-body">
+    <h2>WHO Healthy City — Spaced Bubble Map</h2>
+    <p>The original relationship map with generous spacing between 15 factor bubbles. Each bubble colour-coded by WHO 6P pillar. Toggle pillar connections, drag bubbles, click for descriptions.</p>
+    <span class="tag">Interactive · Physics simulation · 15 nodes</span>
+  </div>
+</a>
+
+<a href="02_relationship_bubble_map.html" class="card">
+  <div class="num">2</div>
+  <div class="card-body">
+    <h2>Sourced Relationship Map</h2>
+    <p>Full bubble network with WHO source citations and CBS indicator scores on every node. Click any bubble to see its Kanaleneiland score, Utrecht benchmark, gap, and the academic source behind the causal connection.</p>
+    <span class="tag">Interactive · Sources visible · Gap scores</span>
+  </div>
+</a>
+
+<a href="03_index_scores_comparison.html" class="card">
+  <div class="num">3</div>
+  <div class="card-body">
+    <h2>Index Scores Comparison Chart</h2>
+    <p>Side-by-side horizontal bar chart for all 9 composite indices: Kanaleneiland vs Utrecht average. Colour-coded by WHO pillar with gap badges. Hover any row for the exact CBS survey question that produced the score.</p>
+    <span class="tag">Static chart · CBS 86270ENG data · 9 indices</span>
+  </div>
+</a>
+
+<a href="04_intervention_sequence.html" class="card">
+  <div class="num">4</div>
+  <div class="card-body">
+    <h2>Intervention Sequence</h2>
+    <p>Six-step prioritised intervention guide grounded in WHO evidence. Click each step to expand the concrete actions for Kanaleneiland, the cascade effects, and the key indicator. Ordered: governance → economic equity → green space → loneliness → housing → active travel.</p>
+    <span class="tag">Interactive stepper · WHO sources · Cascade tags</span>
+  </div>
+</a>
+
+<a href="05_cascade_map.html" class="card">
+  <div class="num">5</div>
+  <div class="card-body">
+    <h2>Intervention to Outcome Cascade Map</h2>
+    <p>Canvas diagram showing causal connections from six interventions (left) to six health outcomes (right). Line thickness encodes evidence strength. Click any bubble to highlight its specific pathways.</p>
+    <span class="tag">Interactive · Canvas · Evidence-weighted connections</span>
+  </div>
+</a>
+
+<footer>
+  <strong>Data sources:</strong> CBS OpenData Netherlands — Kerncijfers Wijken en Buurten (Table 86270ENG) · Gezondheidsmonitor Volwassenen en Ouderen 2020/2022 (RIVM/GGD/CBS) · opendata.cbs.nl<br>
+  <strong>Framework:</strong> WHO European Healthy Cities Network, Phase VII 2019–2024 · who.int/europe/healthy-cities<br>
+  <strong>Evidence:</strong> Marmot Review 2010 · Holt-Lunstad et al. 2015 (PLOS Medicine) · PMC Systematic Review 2021 (PMID 34470696) · WHO GAPPA 2018–2030 · WHO Housing Guidelines 2018 · WHO AQG 2021 · King's College London Urban Mind 2021 · IPCC AR6 Chapter 6 · CSDH 2008
+</footer>
+</body>
+</html>

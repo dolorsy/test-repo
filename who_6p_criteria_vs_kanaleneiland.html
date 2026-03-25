@@ -1,0 +1,252 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#app { font-family: var(--font-sans); padding: 0.5rem 0; }
+.pillar-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.ptab {
+  font-size: 11px; padding: 4px 12px; border-radius: 20px;
+  border: 1px solid; background: transparent; cursor: pointer;
+  transition: all .15s; white-space: nowrap; font-weight: 500;
+}
+.ptab.active { color: #fff !important; }
+.pillar-panel { display: none; }
+.pillar-panel.show { display: block; }
+.pillar-header {
+  padding: 12px 16px; border-radius: 10px 10px 0 0; margin-bottom: 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ph-left h2 { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 2px; }
+.ph-left p { font-size: 11px; color: rgba(255,255,255,0.75); }
+.status-badge { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.5); color: #fff; }
+.criteria-table { border: 0.5px solid var(--color-border-tertiary); border-radius: 0 0 10px 10px; overflow: hidden; }
+.ct-head { display: grid; grid-template-columns: 2.5fr 1fr 1fr 1fr 80px; gap: 0; background: var(--color-background-secondary); padding: 8px 14px; font-size: 10px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+.ct-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr 1fr 80px; gap: 0; padding: 10px 14px; border-top: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); align-items: center; transition: background .1s; }
+.ct-row:hover { background: var(--color-background-secondary); }
+.ct-indicator { font-size: 12px; color: var(--color-text-primary); font-weight: 500; line-height: 1.3; }
+.ct-sub { font-size: 10px; color: var(--color-text-tertiary); margin-top: 1px; }
+.ct-val { font-size: 13px; font-weight: 500; text-align: center; }
+.ct-who { font-size: 11px; color: var(--color-text-secondary); text-align: center; }
+.ct-bar-wrap { position: relative; height: 8px; border-radius: 4px; background: var(--color-background-tertiary); overflow: hidden; }
+.ct-bar { height: 100%; border-radius: 4px; }
+.status-pill { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 10px; text-align: center; white-space: nowrap; }
+.s-pass { background: #EAF3DE; color: #27500A; }
+.s-fail { background: #FCEBEB; color: #791F1F; }
+.s-warn { background: #FAEEDA; color: #633806; }
+.s-partial { background: #E6F1FB; color: #0C447C; }
+.summary-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.sum-card { flex: 1; min-width: 100px; padding: 10px 12px; border-radius: 8px; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); text-align: center; }
+.sum-n { font-size: 22px; font-weight: 500; }
+.sum-l { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; }
+</style>
+
+<div id="app">
+  <div class="pillar-tabs" id="tabs"></div>
+  <div id="panels"></div>
+  <div class="summary-row" id="summary"></div>
+</div>
+
+<script>
+const PILLARS = [
+  {
+    id: 'people', label: 'People', color: '#534AB7',
+    desc: 'Physical health, mental wellbeing, loneliness & healthcare access',
+    status: 'fail',
+    criteria: [
+      { indicator: 'Anxiety / depression risk', sub: 'WHO benchmark: <15% at risk', who: '<15%', k: '18%', u: '11.1%', kn: 18, whoN: 15, uN: 11.1, pass: false },
+      { indicator: 'Restricted daily activity', sub: 'WHO benchmark: <20% restricted', who: '<20%', k: '35%', u: '28.8%', kn: 35, whoN: 20, uN: 28.8, pass: false },
+      { indicator: 'Severe restriction', sub: 'WHO benchmark: <3% severely restricted', who: '<3%', k: '6.6%', u: '2.9%', kn: 6.6, whoN: 3, uN: 2.9, pass: false },
+      { indicator: 'Physical impairments (1+)', sub: 'WHO benchmark: at or below national avg (~28%)', who: '≤28%', k: '52%', u: '27.7%', kn: 52, whoN: 28, uN: 27.7, pass: false },
+      { indicator: 'Loneliness prevalence', sub: 'WHO: <30% socially isolated', who: '<30%', k: 'Index 56', u: 'Index 68.4', kn: 56, whoN: 70, uN: 68.4, pass: false, index: true },
+      { indicator: 'Suicidal ideation (past year)', sub: 'WHO: clinically significant >10%', who: '<10%', k: '15%', u: '11.9%', kn: 15, whoN: 10, uN: 11.9, pass: false },
+      { indicator: 'Perceived health index', sub: 'Within 5 pts of city average', who: '≥city avg −5', k: '66.4', u: '66.6', kn: 66.4, whoN: 61.6, uN: 66.6, pass: true, index: true },
+    ]
+  },
+  {
+    id: 'place', label: 'Place', color: '#1D9E75',
+    desc: 'Housing safety, transport equity & active mobility infrastructure',
+    status: 'fail',
+    criteria: [
+      { indicator: 'Green space within 300m', sub: 'WHO: ≥90% of residents within 5 min walk', who: '90% access', k: 'Index 54', u: 'Index 81.5', kn: 54, whoN: 90, uN: 81.5, pass: false, index: true },
+      { indicator: 'Distance to GP', sub: 'WHO: within 15 min walk (~1.2km)', who: '≤1.2 km', k: '1.5 km', u: '~0.8 km', kn: 1.5, whoN: 1.2, uN: 0.8, pass: false, lower: true },
+      { indicator: 'Distance to hospital', sub: 'WHO: within 30 min active travel', who: '≤4 km', k: '3.9 km', u: '~2.5 km', kn: 3.9, whoN: 4, uN: 2.5, pass: true, lower: true },
+      { indicator: 'Distance to station', sub: 'WHO GAPPA: active travel to transit ≤2km', who: '≤2 km', k: '2.6 km', u: '~1.5 km', kn: 2.6, whoN: 2, uN: 1.5, pass: false, lower: true },
+      { indicator: 'Walking / cycling to school', sub: 'WHO GAPPA: active travel norm ≥70%', who: '≥70%', k: '67%', u: '69.1%', kn: 67, whoN: 70, uN: 69.1, pass: false },
+      { indicator: 'Meets exercise guidelines', sub: 'WHO GAPPA: ≥60% meeting PA guidelines', who: '≥60%', k: '51%', u: '56.7%', kn: 51, whoN: 60, uN: 56.7, pass: false },
+    ]
+  },
+  {
+    id: 'participation', label: 'Participation', color: '#D4537E',
+    desc: 'Social cohesion, community resilience & resident participation',
+    status: 'partial',
+    criteria: [
+      { indicator: 'Social cohesion index', sub: 'Within 5 pts of city average', who: '≥city −5', k: '62.1', u: '64.1', kn: 62.1, whoN: 59.1, uN: 64.1, pass: true, index: true },
+      { indicator: 'Social nuisance', sub: 'WHO: lower is better — Kanaleneiland below Utrecht', who: 'Below avg', k: '41%', u: '49%', kn: 41, whoN: 49, uN: 49, pass: true },
+      { indicator: 'Social support of others', sub: 'WHO: ≥90% provide support when needed', who: '≥90%', k: '87.4%', u: '93.1%', kn: 87.4, whoN: 90, uN: 93.1, pass: false },
+      { indicator: 'Social resilience index', sub: 'Within 5 pts of city average', who: '≥city −5', k: '62.1', u: '68.9', kn: 62.1, whoN: 63.9, uN: 68.9, pass: false, index: true },
+      { indicator: 'Formal participation mechanisms', sub: 'WHO Phase VII: documented co-design processes', who: 'Required', k: 'Not measured', u: 'City level', kn: null, whoN: null, uN: null, pass: null },
+    ]
+  },
+  {
+    id: 'prosperity', label: 'Prosperity', color: '#BA7517',
+    desc: 'Economic equity, child poverty & financial resilience',
+    status: 'fail',
+    criteria: [
+      { indicator: 'Child poverty rate', sub: 'WHO / SDG 1: at or below national average (~7%)', who: '≤10%', k: '33.6%', u: '13.2%', kn: 33.6, whoN: 10, uN: 13.2, pass: false },
+      { indicator: 'Trouble making ends meet', sub: 'WHO benchmark: <15% financial hardship', who: '<15%', k: '28.3%', u: '18.4%', kn: 28.3, whoN: 15, uN: 18.4, pass: false },
+      { indicator: 'Low economic resilience', sub: 'WHO: <25% without financial buffer', who: '<25%', k: '25%', u: '12%', kn: 25, whoN: 25, uN: 12, pass: null },
+      { indicator: 'Socio-economic index gap', sub: 'WHO: within 5 pts of city average', who: '≤5 pt gap', k: 'Gap −15.1', u: 'Benchmark', kn: 15.1, whoN: 5, uN: 0, pass: false, lower: true, gapMode: true },
+      { indicator: 'Fragile social health (elderly)', sub: 'WHO elderly wellbeing benchmark: <35%', who: '<35%', k: '42%', u: '31.4%', kn: 42, whoN: 35, uN: 31.4, pass: false },
+    ]
+  },
+  {
+    id: 'peace', label: 'Peace', color: '#378ADD',
+    desc: 'Intersectoral governance, Health in All Policies & equity accountability',
+    status: 'partial',
+    criteria: [
+      { indicator: 'Health in All Policies (HiAP)', sub: 'WHO Phase VII mandatory: health embedded in 4+ policy domains', who: 'Required', k: 'District: unverified', u: 'City: member', kn: null, pass: null },
+      { indicator: 'Intersectoral working group', sub: 'WHO: 3+ non-health departments co-managing health outcomes', who: 'Required', k: 'Not confirmed', u: 'City level', kn: null, pass: null },
+      { indicator: 'Annual WHO indicator reporting', sub: 'WHO Phase VII: annual progress reporting required', who: 'Required', k: 'Not confirmed', u: 'City level', kn: null, pass: null },
+      { indicator: 'Health impact assessment', sub: 'WHO: HIA mandatory for major planning decisions', who: 'Required', k: 'Not confirmed', u: 'City level', kn: null, pass: null },
+      { indicator: 'Multi-pillar deficit pattern', sub: 'Proxy: simultaneous deficits across 4+ pillars indicates HiAP absent at district level', who: '0–1 pillars failing', k: '4 pillars failing', u: 'City benchmark', kn: 4, whoN: 1, uN: 1, pass: false, gapMode: true },
+    ]
+  },
+  {
+    id: 'planet', label: 'Planet', color: '#639922',
+    desc: 'Green space, biodiversity, air quality & climate resilience',
+    status: 'partial',
+    criteria: [
+      { indicator: 'Park accessibility index', sub: 'WHO: ≥90% residents within 300m of green space', who: '≥80 index', k: '54', u: '81.5', kn: 54, whoN: 80, uN: 81.5, pass: false, index: true },
+      { indicator: 'Biodiversity index', sub: 'WHO: at or above city average', who: '≥city avg', k: '76.1', u: '66.8', kn: 76.1, whoN: 66.8, uN: 66.8, pass: true, index: true },
+      { indicator: 'Urban tree canopy (Beneluxlaan)', sub: 'WHO: ≥20% tree canopy cover in residential areas', who: '≥20%', k: '<5% (est.)', u: '~15%', kn: 5, whoN: 20, uN: 15, pass: false },
+      { indicator: 'Air quality (PM2.5)', sub: 'WHO AQG 2021: annual mean <5 μg/m³', who: '<5 μg/m³', k: '>10 (est.)', u: '~8 μg/m³', kn: 10, whoN: 5, uN: 8, pass: false, lower: true },
+      { indicator: 'Sports participation weekly', sub: 'WHO: ≥65% of population active weekly', who: '≥65%', k: '53%', u: '66.5%', kn: 53, whoN: 65, uN: 66.5, pass: false },
+      { indicator: 'Overweight prevalence', sub: 'WHO: <40% overweight', who: '<40%', k: '50%', u: '39.3%', kn: 50, whoN: 40, uN: 39.3, pass: false },
+    ]
+  },
+];
+
+const STATUS_MAP = {
+  pass: { label: 'Meets', cls: 's-pass' },
+  fail: { label: 'Fails', cls: 's-fail' },
+  warn: { label: 'Borderline', cls: 's-warn' },
+  partial: { label: 'Partial', cls: 's-partial' },
+};
+
+function getStatus(row) {
+  if (row.pass === null) return 'partial';
+  if (row.pass === true) return 'pass';
+  if (row.kn !== null && row.whoN !== null) {
+    const lower = row.lower || row.gapMode;
+    const ratio = lower ? row.whoN / row.kn : row.kn / row.whoN;
+    if (ratio > 0.85) return 'warn';
+  }
+  return 'fail';
+}
+
+function barWidth(row) {
+  if (row.kn === null || row.whoN === null) return 0;
+  if (row.index) return Math.min(100, (row.kn / 100) * 100);
+  if (row.lower || row.gapMode) {
+    return Math.min(100, (row.whoN / Math.max(row.kn, row.whoN)) * 100);
+  }
+  return Math.min(100, (row.kn / Math.max(row.kn, row.whoN, row.uN || 0)) * 100);
+}
+
+function barColor(row) {
+  const s = getStatus(row);
+  if (s === 'pass') return '#639922';
+  if (s === 'warn') return '#BA7517';
+  if (s === 'partial') return '#378ADD';
+  return '#A32D2D';
+}
+
+let activeTab = 'people';
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  PILLARS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'ptab' + (activeTab === p.id ? ' active' : '');
+    btn.style.borderColor = p.color;
+    btn.style.color = activeTab === p.id ? '#fff' : p.color;
+    if (activeTab === p.id) btn.style.background = p.color;
+    btn.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${activeTab===p.id?'#fff':p.color};margin-right:4px;vertical-align:middle;"></span>${p.label}`;
+    btn.onclick = () => { activeTab = p.id; renderAll(); };
+    tabs.appendChild(btn);
+  });
+}
+
+function renderPanels() {
+  const panels = document.getElementById('panels');
+  panels.innerHTML = '';
+  PILLARS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'pillar-panel' + (activeTab === p.id ? ' show' : '');
+    const overallStatus = p.criteria.filter(r => r.pass === false).length;
+    const overallPass = p.criteria.filter(r => r.pass === true).length;
+    const total = p.criteria.filter(r => r.pass !== null).length;
+    const pct = total > 0 ? Math.round((overallPass / total) * 100) : null;
+    const statusLabel = overallStatus === 0 ? 'All criteria met' : overallPass === 0 ? 'No criteria met' : `${overallPass}/${total} criteria met`;
+    div.innerHTML = `
+      <div class="pillar-header" style="background:${p.color};">
+        <div class="ph-left">
+          <h2>${p.label} pillar — WHO Phase VII criteria</h2>
+          <p>${p.desc}</p>
+        </div>
+        <span class="status-badge">${statusLabel}</span>
+      </div>
+      <div class="criteria-table">
+        <div class="ct-head">
+          <span>Indicator</span>
+          <span style="text-align:center">WHO benchmark</span>
+          <span style="text-align:center">Kanaleneiland</span>
+          <span style="text-align:center">Utrecht avg</span>
+          <span style="text-align:center">Status</span>
+        </div>
+        ${p.criteria.map(row => {
+          const s = getStatus(row);
+          const sp = STATUS_MAP[s];
+          const bw = barWidth(row);
+          const bc = barColor(row);
+          const kColor = s === 'pass' ? '#3B6D11' : s === 'warn' ? '#854F0B' : s === 'partial' ? '#185FA5' : '#A32D2D';
+          return `<div class="ct-row">
+            <div><div class="ct-indicator">${row.indicator}</div><div class="ct-sub">${row.sub}</div></div>
+            <div class="ct-who" style="font-size:12px;font-weight:500;">${row.who}</div>
+            <div style="text-align:center">
+              <div class="ct-val" style="color:${kColor}">${row.k}</div>
+              ${row.kn !== null ? `<div class="ct-bar-wrap" style="width:80%;margin:3px auto 0;"><div class="ct-bar" style="width:${bw}%;background:${bc};"></div></div>` : ''}
+            </div>
+            <div class="ct-who">${row.u}</div>
+            <div style="text-align:center"><span class="status-pill ${sp.cls}">${sp.label}</span></div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    panels.appendChild(div);
+  });
+}
+
+function renderSummary() {
+  const el = document.getElementById('summary');
+  let totalPass = 0, totalFail = 0, totalWarn = 0, totalPartial = 0;
+  PILLARS.forEach(p => {
+    p.criteria.forEach(r => {
+      const s = getStatus(r);
+      if (s === 'pass') totalPass++;
+      else if (s === 'fail') totalFail++;
+      else if (s === 'warn') totalWarn++;
+      else totalPartial++;
+    });
+  });
+  const total = totalPass + totalFail + totalWarn + totalPartial;
+  el.innerHTML = `
+    <div class="sum-card"><div class="sum-n" style="color:#3B6D11">${totalPass}</div><div class="sum-l">Criteria met</div></div>
+    <div class="sum-card"><div class="sum-n" style="color:#A32D2D">${totalFail}</div><div class="sum-l">Criteria failed</div></div>
+    <div class="sum-card"><div class="sum-n" style="color:#854F0B">${totalWarn}</div><div class="sum-l">Borderline</div></div>
+    <div class="sum-card"><div class="sum-n" style="color:#185FA5">${totalPartial}</div><div class="sum-l">Not measurable</div></div>
+    <div class="sum-card"><div class="sum-n" style="color:var(--color-text-primary)">${Math.round((totalPass/total)*100)}%</div><div class="sum-l">Overall pass rate</div></div>`;
+}
+
+function renderAll() { renderTabs(); renderPanels(); renderSummary(); }
+renderAll();
+</script>
